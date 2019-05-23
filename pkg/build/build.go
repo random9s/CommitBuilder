@@ -21,7 +21,7 @@ func buildExists(repoName, hash string) bool {
 }
 
 func dockerize(dirpath, hash string) error {
-	cmd := exec.Command("make", "-C", dirpath, "SHA", hash, "docker")
+	cmd := exec.Command("make", "-C", dirpath, fmt.Sprintf("SHA=%s", hash), "docker")
 	stderr, _ := cmd.StderrPipe()
 
 	cmd.Start()
