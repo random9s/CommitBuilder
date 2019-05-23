@@ -62,7 +62,7 @@ func IndexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
-			err = build.Build(pre.PullReq.Head.Repo.FullName, pre.PullReq.Head.Sha)
+			err = build.Build(pre)
 			if err != nil {
 				fmt.Println("build error", err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
