@@ -20,8 +20,8 @@ func buildExists(repoName, hash string) bool {
 	return !os.IsNotExist(err)
 }
 
-func dockerize(dirpath string) error {
-	cmd := exec.Command("make", "-C", dirpath, "docker")
+func dockerize(dirpath, hash string) error {
+	cmd := exec.Command("make", "-C", dirpath, "SHA", hash, "docker")
 	stderr, _ := cmd.StderrPipe()
 
 	cmd.Start()
@@ -46,7 +46,7 @@ func Build(repoName, hash string) error {
 	var dir = fmt.Sprintf(buildPath, repoName, hash)
 	fmt.Println("setting up ", dir)
 	os.MkdirAll(dir, 0777)
-	//	defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: fmt.Sprintf(gitPath, repoName),
@@ -67,6 +67,5 @@ func Build(repoName, hash string) error {
 		return err
 	}
 
-	return nil
-	//return dockerize(dir)
+	return dockerize(dir, hash)
 }
