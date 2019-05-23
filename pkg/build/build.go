@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -18,6 +19,14 @@ func buildExists(repoName, hash string) bool {
 	return !os.IsNotExist(err)
 }
 
+func dockerize(dirpath string) error {
+	b, err := exec.Command("make", "-C", dirpath, "docker").Output()
+	if len(b) > 0 {
+		fmt.Println("exec resp:", string(b))
+	}
+	return err
+}
+
 func Build(repoName, hash string) error {
 	if buildExists(repoName, hash) {
 		return errors.New("project has already been built")
@@ -26,6 +35,7 @@ func Build(repoName, hash string) error {
 	var dir = fmt.Sprintf(buildPath, repoName, hash)
 	fmt.Println("setting up ", dir)
 	os.MkdirAll(dir, 0777)
+	defer os.RemoveAll(dir)
 
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: fmt.Sprintf(gitPath, repoName),
@@ -46,5 +56,5 @@ func Build(repoName, hash string) error {
 		return err
 	}
 
-	return nil
+	return dockerize(dir)
 }
