@@ -17,6 +17,8 @@ import (
 	logfmt "github.com/random9s/cinder/logger/format"
 )
 
+//test
+
 func exitOnErr(err error) {
 	if err != nil {
 		log.Fatal(err)
