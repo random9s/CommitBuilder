@@ -80,10 +80,12 @@ func indexGet(errLog logger.Logger) http.Handler {
 }
 func indexPost(errLog logger.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("post received")
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
 
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
+			fmt.Println("key was found")
 			resp = []byte("failure\n")
 			status = strconv.Itoa(http.StatusInternalServerError)
 			b, err := ioutil.ReadAll(r.Body)
@@ -95,8 +97,10 @@ func indexPost(errLog logger.Logger) http.Handler {
 				w.Write(resp)
 				return
 			}
+			fmt.Printf("req: %#v\n", r)
 
 			if len(b) == 0 {
+				fmt.Println("no body sent")
 				resp = []byte("bad request: missing body")
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
@@ -104,6 +108,7 @@ func indexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
+			fmt.Println("unmarshal body")
 			var m = make(map[string]interface{})
 			json.Unmarshal(b, m)
 
