@@ -1,7 +1,7 @@
 BUILD=$(shell pwd)/main
 
 $(BUILD): clean
-	go build -o main 
+	go build -o main cmd/commitbuilder/main.go
 
 docker: clean
 	docker build -t cb-build -f Dockerfile .
