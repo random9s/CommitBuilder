@@ -108,15 +108,10 @@ func indexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
-			var m = make(map[string]interface{})
-			err = json.Unmarshal(b, &m)
-			if err != nil {
-				fmt.Println("err?", err)
-			}
+			var pre = new(PullReqEvent)
+			json.Unmarshal(b, pre)
 
-			for k, v := range m {
-				fmt.Printf("key: %s\nval: %#v\n\n", k, v)
-			}
+			fmt.Println(pre)
 
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
