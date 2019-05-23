@@ -108,9 +108,13 @@ func indexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
-			fmt.Println("unmarshal body")
+			fmt.Println("unmarshal body", string(b))
+
 			var m = make(map[string]interface{})
-			json.Unmarshal(b, m)
+			err = json.Unmarshal(b, m)
+			if err != nil {
+				fmt.Println("err?", err)
+			}
 
 			for k, v := range m {
 				fmt.Printf("key: %s\nval: %#v\n\n", k, v)
