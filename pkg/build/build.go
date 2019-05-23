@@ -3,6 +3,7 @@ package build
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -20,11 +21,21 @@ func buildExists(repoName, hash string) bool {
 }
 
 func dockerize(dirpath string) error {
-	b, err := exec.Command("make", "-C", dirpath, "docker").Output()
+	cmd := exec.Command("make", "-C", dirpath, "docker")
+	stderr, _ := cmd.StderrPipe()
+
+	cmd.Start()
+
+	b, _ := ioutil.ReadAll(stderr)
+
+	cmd.Wait()
+
 	if len(b) > 0 {
-		fmt.Println("exec resp:", string(b))
+		fmt.Println("exec err resp:", string(b))
+		return errors.New("could not run makefile")
 	}
-	return err
+
+	return nil
 }
 
 func Build(repoName, hash string) error {
