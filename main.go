@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -103,7 +104,12 @@ func indexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
-			fmt.Printf("body: %s\n", string(b))
+			var m = make(map[string]interface{})
+			json.Unmarshal(b, m)
+
+			for k, v := range m {
+				fmt.Printf("key: %s\nval: %#v\n\n", k, v)
+			}
 
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
