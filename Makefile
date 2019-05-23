@@ -4,7 +4,7 @@ SHA?=shahash
 $(BUILD): clean
 	go build -o main cmd/commitbuilder/main.go
 
-docker: clean
+docker:
 	docker build -t ${SHA}-cb-build -f Dockerfile .
 	docker run -d --restart unless-stopped -p 9000:8080 --name cb-${SHA} ${SHA}-cb-build
 

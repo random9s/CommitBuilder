@@ -25,6 +25,6 @@ WORKDIR /go/src/github.com/random9s/CommitBuilder/
 COPY cmd cmd 
 COPY pkg pkg
 RUN CGO_ENABLED=0 go build -a -installsuffix cgo -v -o main cmd/commitbuilder/main.go
-
 EXPOSE 8080
+
 ENTRYPOINT exec ./main > /var/log/server.log 2>&1
