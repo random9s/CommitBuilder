@@ -108,10 +108,8 @@ func indexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
-			fmt.Println("unmarshal body", string(b))
-
 			var m = make(map[string]interface{})
-			err = json.Unmarshal(b, m)
+			err = json.Unmarshal(b, &m)
 			if err != nil {
 				fmt.Println("err?", err)
 			}
