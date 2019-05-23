@@ -13,7 +13,6 @@ import (
 	logfmt "github.com/random9s/cinder/logger/format"
 
 	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 func exitOnErr(err error) {
@@ -56,19 +55,6 @@ func main() {
 	signal.Notify(c)
 	shutdown := make(chan struct{})
 
-	go func(logs ...logger.Logger) {
-		select {
-		case s := <-c:
-			for _, l := range logs {
-				l.Error("sig caught:", s)
-				l.GzipClose()
-			}
-
-			close(shutdown)
-			os.Exit(0)
-		}
-	}(erro)
-
 	/*
 	 * Drop it like its hot
 	 */
@@ -77,7 +63,20 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("dir at ", dir)
-	defer os.RemoveAll(dir)
+
+	go func(dirname string, logs ...logger.Logger) {
+		select {
+		case s := <-c:
+			for _, l := range logs {
+				l.Error("sig caught:", s)
+				l.GzipClose()
+			}
+
+			os.RemoveAll(dirname)
+			close(shutdown)
+			os.Exit(0)
+		}
+	}(dir, erro)
 
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: "https://github.com/random9s/CommitBuilder",
@@ -88,26 +87,34 @@ func main() {
 
 	var hashes = make(map[string]uint)
 	var t = time.NewTicker(time.Second * 5)
+
 	for _ = range t.C {
+		w, err := r.Worktree()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		err = w.Pull(&git.PullOptions{RemoteName: "origin"})
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 		ref, err := r.Head()
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-
-		cIter, err := r.Log(&git.LogOptions{From: ref.Hash()})
+		commit, err := r.CommitObject(ref.Hash())
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-
-		err = cIter.ForEach(func(c *object.Commit) error {
-			var has = c.Hash.String()
-			if _, ok := hashes[has]; !ok {
-				fmt.Println("new hash found", has)
-				hashes[has] = 1
-			}
-			return nil
-		})
+		var has = commit.Hash.String()
+		if _, ok := hashes[has]; !ok {
+			fmt.Println("new hash found", has)
+			hashes[has] = 1
+		}
 	}
+
+	os.RemoveAll(dir)
 }
