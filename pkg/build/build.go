@@ -8,6 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/random9s/CommitBuilder/pkg/gitev"
+	"github.com/random9s/CommitBuilder/pkg/network"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
@@ -21,15 +22,24 @@ func buildExists(dir string) bool {
 }
 
 func dockerize(dirpath, hash string) error {
-	cmd := exec.Command("make", fmt.Sprintf("SHA=%s", hash), "-C", dirpath, "docker")
+	port := network.NextAvailablePort()
+	if port == 0 {
+		return errors.New("no available port to run docker container")
+	}
+
+	cmd := exec.Command(
+		"make",
+		fmt.Sprintf("SHA=%s", hash),
+		fmt.Sprintf("PORT=%d", port),
+		"PROJ=cb",
+		"-C", dirpath,
+		"docker",
+	)
 	stderr, _ := cmd.StderrPipe()
 
 	cmd.Start()
-
 	b, _ := ioutil.ReadAll(stderr)
-
 	cmd.Wait()
-
 	if len(b) > 0 {
 		return errors.New("could not run makefile: " + string(b))
 	}
