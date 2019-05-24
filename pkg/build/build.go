@@ -35,10 +35,16 @@ func dockerize(dirpath, containerName string) error {
 		"docker",
 	)
 	stderr, _ := cmd.StderrPipe()
+	stdout, _ := cmd.StdoutPipe()
 
 	cmd.Start()
 	b, _ := ioutil.ReadAll(stderr)
+	b2, _ := ioutil.ReadAll(stdout)
 	cmd.Wait()
+	if len(b2) > 0 {
+		fmt.Println(string(b2))
+	}
+
 	if len(b) > 0 {
 		return errors.New("could not run makefile: " + string(b))
 	}
@@ -54,16 +60,24 @@ func Build(pre *gitev.PullReqEvent, containerName string) error {
 	os.MkdirAll(dir, 0777)
 	defer os.RemoveAll(dir)
 
+	fmt.Println("cloning dir")
+
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: fmt.Sprintf(gitPath, pre.PullReq.Head.Repo.FullName),
 	})
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("setting up work tree")
+
 	w, err := r.Worktree()
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("checking out current commit")
+
 	if err = w.Checkout(&git.CheckoutOptions{
 		Hash: plumbing.NewHash(pre.PullReq.Head.Sha),
 	}); err != nil {

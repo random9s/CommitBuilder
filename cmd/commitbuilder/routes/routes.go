@@ -60,6 +60,7 @@ func IndexPost(errLog logger.Logger) http.Handler {
 
 			err = initializePREvent(pre)
 			if err != nil {
+				fmt.Println("Initialization error:", err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 				w.Write(resp)
@@ -78,34 +79,25 @@ func IndexPost(errLog logger.Logger) http.Handler {
 
 func initializePREvent(pre *gitev.PullReqEvent) error {
 	var name = docker.PRContainerName(pre)
-	fmt.Println("our new docker container name is", name)
-
 	var err error
+
 	switch pre.Action {
 	case gitev.ACTION_SYNC, gitev.ACTION_EDIT:
 		fmt.Println("SYNC OR EDIT ACTION PERFORMED")
-		runningContainer, err := docker.PRContainer(pre)
-		if err != nil {
-			break
-		}
-		if runningContainer != "" {
+		if runningContainer, _ := docker.PRContainer(pre); runningContainer != "" {
 			fmt.Println("running container name is", runningContainer)
-			err = docker.StopContainer(runningContainer)
-			if err != nil {
+			if err = docker.StopContainer(runningContainer); err != nil {
 				break
 			}
 			fmt.Println("shut down running container")
 		}
 		err = build.Build(pre, name)
-		fmt.Println("running new contianer")
 	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
 		fmt.Println("OPEN OR REOPEN ACTION PERFORMED")
 		err = build.Build(pre, name)
-		fmt.Println("running new contianer")
 	case gitev.ACTION_CLOSE:
 		fmt.Println("CLOSE ACTION PERFORMED")
 		err = docker.StopContainer(name)
-		fmt.Println("shutdown contianer")
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
