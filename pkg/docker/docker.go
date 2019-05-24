@@ -30,20 +30,27 @@ func PRContainerName(pre *gitev.PullReqEvent) string {
 func PRContainer(pre *gitev.PullReqEvent) (string, error) {
 	containers, err := ListContainers()
 	if err != nil {
+		fmt.Println("super duper error", err)
 		return "", err
 	}
 
 	var projName = pre.PullReq.Head.Repo.Name
 	var pullReqID = pre.PRNumber
+
 	var pref = strings.ToLower(fmt.Sprintf("%s-%s", projName, pullReqID))
+	fmt.Println("PREFIX: ", pref)
+
 	var container string
 	for _, c := range containers {
+		fmt.Println("CONTAINER", c)
 		if strings.HasPrefix(c, pref) {
+			fmt.Println("found prefix")
 			container = c
 			break
 		}
 	}
 
+	fmt.Println("returning contianer: ", container)
 	return container, nil
 }
 
