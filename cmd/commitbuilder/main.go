@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -61,6 +62,14 @@ func main() {
 	os.Symlink(accessPath, symAccess)
 	os.Symlink(errorPath, symError)
 
+	var prStateDir = "/srv/www/prstates"
+	if debug {
+		prStateDir = "srv/www/prstates"
+	}
+	if _, err := os.Stat(prStateDir); os.IsNotExist(err) {
+		os.MkdirAll(prStateDir, 0777)
+	}
+
 	/*
 	 * SETUP ROUTER AND MIDDLEWARE FOR LOGGIN REQS
 	 */
@@ -68,10 +77,35 @@ func main() {
 
 	logReq := middleware.AccessLogger(access)
 	indexGet := routes.IndexGet(erro)
-	indexPost := routes.IndexPost(erro)
+	indexPost := routes.IndexPost(erro, prStateDir)
+
+	var pingCh = make(chan bool)
+	var infoCh = make(chan []byte)
+	go func() {
+		for {
+			select {
+			case _, ok := <-pingCh:
+				if !ok {
+					fmt.Println("time to die")
+					return
+				}
+
+				files, _ := ioutil.ReadDir(prStateDir)
+				var fileNames = "Files contained in dir are: \n"
+				for _, file := range files {
+					fileNames += file.Name() + "\n"
+					fmt.Println(file.Name())
+				}
+
+				infoCh <- []byte(fileNames)
+			}
+		}
+	}()
+	indexSocket := routes.IndexWebSocketServer(erro, pingCh, infoCh)
 
 	r.Methods("GET").Path("/").Name("index").Handler(logReq(indexGet))
 	r.Methods("POST").Path("/").Name("pullreq").Handler(logReq(indexPost))
+	r.Methods("GET").Path("/prinfo").Name("Pull Request Information").Handler(logReq(indexSocket))
 	r.PathPrefix("/assets/").Handler(
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))),
 	)
@@ -100,6 +134,7 @@ func main() {
 				log.Printf("HTTP server Shutdown: %v", err)
 			}
 
+			close(infoCh)
 			close(shutdown)
 		}
 	}(&srv, access, erro)

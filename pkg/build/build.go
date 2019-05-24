@@ -22,6 +22,11 @@ func buildExists(dir string) bool {
 }
 
 func dockerize(dirpath, containerName string) error {
+	var makefile = fmt.Sprintf("%s/Makefile", dirpath)
+	if _, err := os.Stat(makefile); os.IsNotExist(err) {
+		return errors.New("could not locate Makefile in project")
+	}
+
 	port := network.NextAvailablePort()
 	if port == 0 {
 		return errors.New("no available port to run docker container")
@@ -35,7 +40,6 @@ func dockerize(dirpath, containerName string) error {
 		"docker",
 	)
 	stderr, _ := cmd.StderrPipe()
-
 	cmd.Start()
 	b, _ := ioutil.ReadAll(stderr)
 	cmd.Wait()

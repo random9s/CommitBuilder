@@ -1,13 +1,95 @@
-<!DOCTYPE>
-<html>
-	<head>
-		<title>Staging Servers</title>
-	</head>
-	<body>
-		<div>
-			<h1># 1</h1>
-			<h1># 2</h1>
-			<h1># 3</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- Meta Tags -->
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+	<!-- Title -->
+	<title>Fyusion | PR Server</title>
+	<!-- Fonts -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet">
+	<!-- Styles -->
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+	<nav class="nav">
+		<img src="assets/images/fyusion-logo.svg" alt="Company Logo">
+	</nav>
+
+	<main class="container">
+		<table class="status-table">
+			<thead>
+				<tr>
+					<th><span>User</span></th>
+					<th><span>Repo</span></th>
+					<th><span>Branch</span></th>
+					<th><span>Server</span></th>
+					<th><span>Status</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><img src="https://avatars0.githubusercontent.com/u/10393533?s=400&u=0bb4dd1f84d747892ce9f0f21b0751ca145581fa&v=4" width="50" height="50" alt="username"> <a style="position:relative; margin: 20%" href="https://github.com/random9s">random9s</a></td>
+					<td>CommitBuilder</td>
+					<td>New Branch</td>
+					<td><a href="http://something.com">#142</a></td>
+					<td class="status status--active">Active</td>
+				</tr>
+			</tbody>
+		</table>
+	</main>
+	<footer class="footer">
+		<div class="footer__inner">
+			<a href="https://fyusion.com/" target="_blank">
+				<img src="./assets/images/simple-logo.svg" alt="Company Logo">
+			</a>
+			<span class="copyright">© Fyusion, Inc.</span>
+			<a class="contact" href="mailto:support@fyusion.com">Support</a>
 		</div>
-	</body>
+	</footer>
+	<script type="text/javascript">
+		window.addEventListener("load", function(evt) {
+			let print = function(message) {
+				var d = document.createElement("div");
+				d.innerHTML = message;
+				document.body.appendChild(d);
+			};
+
+			let ws = new WebSocket("ws://localhost:8080/prinfo");
+			function timeout(ms) {
+				return new Promise(resolve => setTimeout(resolve, ms));
+			}
+			function send(msg) {
+				return new Promise((res, rej) => {
+					ws.send(msg);
+					res(msg);
+				});
+			}
+			async function poll() {
+				while (ws) {
+					await Promise.all([
+						send('ping'),
+						timeout(5000)
+					]);
+				}
+			}
+			ws.onopen = function(evt) {
+				poll()
+			}
+			ws.onclose = function(evt) {
+				console.log ('closing down shop');
+				ws = null;
+			}
+			ws.onmessage = function(evt) {
+				print("RESPONSE: " + evt.data);
+			}
+			ws.onerror = function(evt) {
+				print("ERROR: " + evt.data);
+			}
+		});
+	</script>
+</body>
 </html>

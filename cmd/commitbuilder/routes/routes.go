@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"text/template"
 
+	"github.com/gorilla/websocket"
 	"github.com/random9s/CommitBuilder/pkg/build"
 	"github.com/random9s/CommitBuilder/pkg/docker"
 	"github.com/random9s/CommitBuilder/pkg/gitev"
@@ -24,15 +26,51 @@ func loadTemplate(w http.ResponseWriter, name string, htmlPaths ...string) {
 	}
 }
 
-func IndexGet(errLog logger.Logger) http.Handler {
+//IndexWebSocketServer is used to poll for info about new PRs
+func IndexWebSocketServer(errLog logger.Logger, ping chan bool, info chan []byte) http.Handler {
+	var upgrader = websocket.Upgrader{}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusOK))
-		//loadTemplate(w, "index.html", "assets/html/index.html")
-		w.Write([]byte("hello, world 2"))
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Print("upgrade err:", err)
+			return
+		}
+		defer c.Close()
+
+		for {
+			mt, _, err := c.ReadMessage()
+			if err != nil {
+				errLog.Error(err)
+				break
+			}
+
+			ping <- true
+			msg, ok := <-info
+			if !ok {
+				fmt.Println("pack it in, shut it down")
+				close(ping)
+				return
+			}
+
+			if err = c.WriteMessage(mt, msg); err != nil {
+				errLog.Error(err)
+				break
+			}
+		}
 	})
 }
 
-func IndexPost(errLog logger.Logger) http.Handler {
+//IndexGet ...
+func IndexGet(errLog logger.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusOK))
+		loadTemplate(w, "index.html", "assets/html/index.html")
+	})
+}
+
+//IndexPost ...
+func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
@@ -67,6 +105,12 @@ func IndexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
+			var stateFile = fmt.Sprintf("%s-%d", pre.PullReq.Head.Repo.Name, pre.PRNumber)
+			err = ioutil.WriteFile(stateFile, b, 0777)
+			if err != nil {
+				fmt.Println("err writing state file", err)
+			}
+
 			err = initializePREvent(pre)
 			if err != nil {
 				fmt.Println("Initialization error:", err)
@@ -77,7 +121,6 @@ func IndexPost(errLog logger.Logger) http.Handler {
 			}
 
 			fmt.Println("successfully completed action")
-
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
 		}

@@ -24,13 +24,14 @@ const (
 
 //GitUser ...
 type GitUser struct {
-	Login     string `json:"login"`
-	ID        int    `json:"id"`
-	NodeID    string `json:"node_id"`
-	AvatarURL string `json:"avatar_url"`
-	URL       string `json:"url"`
-	Type      string `json:"type"`
-	Admin     bool   `json:"site_admin"`
+	Login       string `json:"login"`
+	ID          int    `json:"id"`
+	NodeID      string `json:"node_id"`
+	AvatarURL   string `json:"avatar_url"`
+	GravatarURL string `json:"gravatar_id"`
+	URL         string `json:"url"`
+	Type        string `json:"type"`
+	Admin       bool   `json:"site_admin"`
 }
 
 //RepoInfo ...
@@ -49,6 +50,7 @@ type HeadRef struct {
 	Ref      string   `json:"ref"`
 	Sha      string   `json:"sha"`
 	User     GitUser  `json:"user"`
+	HTMLURL  string   `json:"html_url"`
 	GitURL   string   `json:"git_url"`
 	SSHURL   string   `json:"ssh_url"`
 	CloneURL string   `json:"clone_url"`
