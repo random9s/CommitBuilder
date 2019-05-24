@@ -21,16 +21,17 @@ func buildExists(dir string) bool {
 	return !os.IsNotExist(err)
 }
 
-func dockerize(dirpath, containerName string) error {
+func dockerize(dirpath, containerName string) (string, error) {
 	var makefile = fmt.Sprintf("%s/Makefile", dirpath)
 	if _, err := os.Stat(makefile); os.IsNotExist(err) {
-		return errors.New("could not locate Makefile in project")
+		return "", errors.New("could not locate Makefile in project")
 	}
 
 	port := network.NextAvailablePort()
 	if port == 0 {
-		return errors.New("no available port to run docker container")
+		return "", errors.New("no available port to run docker container")
 	}
+	var loc = fmt.Sprintf("http://ec2-34-215-250-175.us-west-2.compute.amazonaws.com:8080/%d", port)
 
 	cmd := exec.Command(
 		"make",
@@ -44,16 +45,16 @@ func dockerize(dirpath, containerName string) error {
 	b, _ := ioutil.ReadAll(stderr)
 	cmd.Wait()
 	if len(b) > 0 {
-		return errors.New("could not run makefile: " + string(b))
+		return "", errors.New("could not run makefile: " + string(b))
 	}
 
-	return nil
+	return loc, nil
 }
 
-func Build(pre *gitev.PullReqEvent, containerName string) error {
+func Build(pre *gitev.PullReqEvent, containerName string) (string, error) {
 	var dir = fmt.Sprintf(buildPath, pre.PullReq.Head.Repo.Name, pre.PullReq.Head.Sha)
 	if buildExists(dir) {
-		return errors.New("project has already been built")
+		return "", errors.New("project has already been built")
 	}
 	os.MkdirAll(dir, 0777)
 	defer os.RemoveAll(dir)
@@ -62,18 +63,18 @@ func Build(pre *gitev.PullReqEvent, containerName string) error {
 		URL: fmt.Sprintf(gitPath, pre.PullReq.Head.Repo.FullName),
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	w, err := r.Worktree()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err = w.Checkout(&git.CheckoutOptions{
 		Hash: plumbing.NewHash(pre.PullReq.Head.Sha),
 	}); err != nil {
-		return err
+		return "", err
 	}
 
 	return dockerize(dir, containerName)

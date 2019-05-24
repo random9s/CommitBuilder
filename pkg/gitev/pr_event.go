@@ -29,6 +29,7 @@ type GitUser struct {
 	NodeID      string `json:"node_id"`
 	AvatarURL   string `json:"avatar_url"`
 	GravatarURL string `json:"gravatar_id"`
+	HTMLUrl     string `json:"html_url"`
 	URL         string `json:"url"`
 	Type        string `json:"type"`
 	Admin       bool   `json:"site_admin"`
@@ -76,6 +77,7 @@ type State string
 const (
 	STATE_BUILDING State = "building"
 	STATE_ACTIVE   State = "active"
+	STATE_FAILED   State = "failed"
 )
 
 //PullReqEvent ...
@@ -84,6 +86,7 @@ type PullReqEvent struct {
 	PRNumber int     `json:"number"`
 	PullReq  PullReq `json:"pull_request"`
 	State    State   `json:"__local_state"`
+	Loc      string  `json:"server_loc"`
 }
 
 func (pre *PullReqEvent) SetActive() {
@@ -92,6 +95,14 @@ func (pre *PullReqEvent) SetActive() {
 
 func (pre *PullReqEvent) SetBuilding() {
 	pre.State = STATE_BUILDING
+}
+
+func (pre *PullReqEvent) SetFailed() {
+	pre.State = STATE_FAILED
+}
+
+func (pre *PullReqEvent) SetBuildLoc(loc string) {
+	pre.Loc = loc
 }
 
 func (pre *PullReqEvent) String() string {

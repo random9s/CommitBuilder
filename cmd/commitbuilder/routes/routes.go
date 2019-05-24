@@ -121,8 +121,19 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 			fp.Sync()
 
-			err = initializePREvent(pre)
+			loc, err := initializePREvent(pre)
 			if err != nil {
+				fp.Truncate(0)
+				fp.Sync()
+
+				pre.SetFailed()
+				preBytes, _ = json.Marshal(pre)
+				_, err = fp.Write(preBytes)
+				if err != nil {
+					fmt.Println("err writing state file", err)
+				}
+				fp.Sync()
+
 				fmt.Println("Initialization error:", err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
@@ -134,6 +145,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			fp.Sync()
 
 			pre.SetActive()
+			pre.SetBuildLoc(loc)
 			preBytes, _ = json.Marshal(pre)
 			_, err = fp.Write(preBytes)
 			if err != nil {
@@ -152,8 +164,9 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	})
 }
 
-func initializePREvent(pre *gitev.PullReqEvent) error {
+func initializePREvent(pre *gitev.PullReqEvent) (string, error) {
 	var name = docker.PRContainerName(pre)
+	var serverLoc string
 	var err error
 
 	switch pre.Action {
@@ -165,10 +178,10 @@ func initializePREvent(pre *gitev.PullReqEvent) error {
 			}
 			fmt.Println("shut down running container")
 		}
-		err = build.Build(pre, name)
+		serverLoc, err = build.Build(pre, name)
 	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
 		fmt.Println("OPEN OR REOPEN ACTION PERFORMED")
-		err = build.Build(pre, name)
+		serverLoc, err = build.Build(pre, name)
 	case gitev.ACTION_CLOSE:
 		fmt.Println("CLOSE ACTION PERFORMED")
 		err = docker.StopContainer(name)
@@ -176,5 +189,5 @@ func initializePREvent(pre *gitev.PullReqEvent) error {
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
 
-	return err
+	return serverLoc, err
 }

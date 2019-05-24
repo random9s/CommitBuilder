@@ -24,6 +24,7 @@ RUN go get "github.com/gorilla/websocket"
 RUN mkdir -p /go/src/github.com/random9s/CommitBuilder/
 WORKDIR /go/src/github.com/random9s/CommitBuilder/
 COPY cmd cmd 
+COPY assets assets
 COPY pkg pkg
 RUN CGO_ENABLED=0 go build -a -installsuffix cgo -v -o main cmd/commitbuilder/main.go
 EXPOSE 8080
