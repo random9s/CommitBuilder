@@ -67,6 +67,8 @@ func IndexPost(errLog logger.Logger) http.Handler {
 				return
 			}
 
+			fmt.Println("successfully completed action")
+
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
 		}

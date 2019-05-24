@@ -35,16 +35,10 @@ func dockerize(dirpath, containerName string) error {
 		"docker",
 	)
 	stderr, _ := cmd.StderrPipe()
-	stdout, _ := cmd.StdoutPipe()
 
 	cmd.Start()
 	b, _ := ioutil.ReadAll(stderr)
-	b2, _ := ioutil.ReadAll(stdout)
 	cmd.Wait()
-	if len(b2) > 0 {
-		fmt.Println(string(b2))
-	}
-
 	if len(b) > 0 {
 		return errors.New("could not run makefile: " + string(b))
 	}
