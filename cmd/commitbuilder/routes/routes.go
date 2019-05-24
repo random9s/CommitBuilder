@@ -105,11 +105,13 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				return
 			}
 
-			var stateFile = fmt.Sprintf("%s-%d", pre.PullReq.Head.Repo.Name, pre.PRNumber)
+			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, pre.PullReq.Head.Repo.Name, pre.PRNumber)
+			fmt.Println("setting up state file: ", stateFile)
 			err = ioutil.WriteFile(stateFile, b, 0777)
 			if err != nil {
 				fmt.Println("err writing state file", err)
 			}
+			fmt.Println("state file written")
 
 			err = initializePREvent(pre)
 			if err != nil {
