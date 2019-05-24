@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"text/template"
 
 	"github.com/random9s/CommitBuilder/pkg/build"
 	"github.com/random9s/CommitBuilder/pkg/docker"
@@ -13,13 +14,21 @@ import (
 	"github.com/random9s/cinder/logger"
 )
 
+func loadTemplate(w http.ResponseWriter, name string, htmlPaths ...string) {
+	var data = make(map[string]interface{})
+
+	err := template.Must(template.New(name+".html").ParseFiles(htmlPaths...)).ExecuteTemplate(w, name, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func IndexGet(errLog logger.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var resp = []byte("hello, new one!\n")
-		var status, conLen = strconv.Itoa(http.StatusOK), strconv.Itoa(len(resp))
-		w.Header().Set("X-Server-Status", status)
-		w.Header().Set("Content-Length", conLen)
-		w.Write(resp)
+		w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusOK))
+		//loadTemplate(w, "index.html", "assets/html/index.html")
+		w.Write("hello")
 	})
 }
 

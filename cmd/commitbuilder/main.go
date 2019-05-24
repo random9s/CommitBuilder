@@ -72,6 +72,10 @@ func main() {
 
 	r.Methods("GET").Path("/").Name("index").Handler(logReq(indexGet))
 	r.Methods("POST").Path("/").Name("pullreq").Handler(logReq(indexPost))
+	r.PathPrefix("/assets/").Handler(
+		http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))),
+	)
+
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("page not found"))
 	})
