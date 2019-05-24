@@ -23,7 +23,7 @@ func PRContainerName(pre *gitev.PullReqEvent) string {
 	var pullReqID = pre.PRNumber
 	var projName = pre.PullReq.Head.Repo.Name
 	var commitSha = pre.PullReq.Head.Sha[10:]
-	return fmt.Sprintf("%s-%d-%s", projName, pullReqID, commitSha)
+	return strings.ToLower(fmt.Sprintf("%s-%d-%s", projName, pullReqID, commitSha))
 }
 
 //PRContainer ...
