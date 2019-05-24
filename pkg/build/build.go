@@ -58,8 +58,6 @@ func Build(pre *gitev.PullReqEvent, containerName string) error {
 	os.MkdirAll(dir, 0777)
 	defer os.RemoveAll(dir)
 
-	fmt.Println("cloning dir")
-
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: fmt.Sprintf(gitPath, pre.PullReq.Head.Repo.FullName),
 	})
@@ -67,14 +65,10 @@ func Build(pre *gitev.PullReqEvent, containerName string) error {
 		return err
 	}
 
-	fmt.Println("setting up work tree")
-
 	w, err := r.Worktree()
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("checking out current commit")
 
 	if err = w.Checkout(&git.CheckoutOptions{
 		Hash: plumbing.NewHash(pre.PullReq.Head.Sha),

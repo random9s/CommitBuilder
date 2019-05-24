@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/gorilla/websocket"
@@ -48,7 +50,6 @@ func IndexWebSocketServer(errLog logger.Logger, ping chan bool, info chan []byte
 			ping <- true
 			msg, ok := <-info
 			if !ok {
-				fmt.Println("pack it in, shut it down")
 				close(ping)
 				return
 			}
@@ -104,15 +105,21 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				w.Write(resp)
 				return
 			}
-			pre.SetBuilding()
 
+			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
+
+			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
+			if err != nil {
+				fmt.Print("cannot open file", err)
+			}
+
+			pre.SetBuilding()
 			preBytes, _ := json.Marshal(pre)
-			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, pre.PullReq.Head.Repo.Name, pre.PRNumber)
-			fmt.Println("setting up state file: ", stateFile)
-			err = ioutil.WriteFile(stateFile, preBytes, 0777)
+			_, err = fp.Write(preBytes)
 			if err != nil {
 				fmt.Println("err writing state file", err)
 			}
+			fp.Sync()
 
 			err = initializePREvent(pre)
 			if err != nil {
@@ -122,6 +129,17 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				w.Write(resp)
 				return
 			}
+
+			fp.Truncate(0)
+			fp.Sync()
+
+			pre.SetActive()
+			preBytes, _ = json.Marshal(pre)
+			_, err = fp.Write(preBytes)
+			if err != nil {
+				fmt.Println("err writing state file", err)
+			}
+			fp.Sync()
 
 			fmt.Println("successfully completed action")
 			resp = []byte("success\n")
@@ -142,7 +160,6 @@ func initializePREvent(pre *gitev.PullReqEvent) error {
 	case gitev.ACTION_SYNC, gitev.ACTION_EDIT:
 		fmt.Println("SYNC OR EDIT ACTION PERFORMED")
 		if runningContainer, _ := docker.PRContainer(pre); runningContainer != "" {
-			fmt.Println("running container name is", runningContainer)
 			if err = docker.StopContainer(runningContainer); err != nil {
 				break
 			}

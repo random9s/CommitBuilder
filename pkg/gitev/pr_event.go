@@ -71,12 +71,11 @@ type PullReq struct {
 	Head    HeadRef `json:"head"`
 }
 
-type State int
+type State string
 
 const (
-	STATE_BUILDING State = iota
-	STATE_ACTIVE
-	STATE_REMOVED
+	STATE_BUILDING State = "building"
+	STATE_ACTIVE   State = "active"
 )
 
 //PullReqEvent ...
@@ -93,10 +92,6 @@ func (pre *PullReqEvent) SetActive() {
 
 func (pre *PullReqEvent) SetBuilding() {
 	pre.State = STATE_BUILDING
-}
-
-func (pre *PullReqEvent) SetRemoved() {
-	pre.State = STATE_REMOVED
 }
 
 func (pre *PullReqEvent) String() string {

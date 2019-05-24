@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -97,6 +98,8 @@ func main() {
 					b, _ := ioutil.ReadFile(fullpath)
 					JSON += string(b) + ","
 				}
+
+				strings.TrimRight(JSON, ",")
 				JSON += `]`
 
 				infoCh <- []byte(JSON)
