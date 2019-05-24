@@ -14,7 +14,7 @@ import (
 
 func IndexGet(errLog logger.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var resp = []byte("hello, is it me you're looking for?\n")
+		var resp = []byte("hello, yes it is me!\n")
 		var status, conLen = strconv.Itoa(http.StatusOK), strconv.Itoa(len(resp))
 		w.Header().Set("X-Server-Status", status)
 		w.Header().Set("Content-Length", conLen)
