@@ -82,7 +82,7 @@ func main() {
 	 */
 	shutdown := make(chan struct{})
 	c := make(chan os.Signal, 1)
-	signal.Notify(c)
+	signal.Notify(c, os.Interrupt)
 
 	go func(srv *http.Server, logs ...logger.Logger) {
 		select {

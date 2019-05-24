@@ -28,5 +28,6 @@ func NextAvailablePort() int {
 			break
 		}
 	}
+	fmt.Println("found available port :", available)
 	return available
 }
