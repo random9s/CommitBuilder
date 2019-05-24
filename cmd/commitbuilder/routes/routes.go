@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/random9s/CommitBuilder/pkg/build"
+	"github.com/random9s/CommitBuilder/pkg/docker"
 	"github.com/random9s/CommitBuilder/pkg/gitev"
 	"github.com/random9s/cinder/logger"
 )
@@ -24,12 +25,10 @@ func IndexGet(errLog logger.Logger) http.Handler {
 
 func IndexPost(errLog logger.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("post received")
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
 
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
-			fmt.Println("key was found")
 			resp = []byte("failure\n")
 			status = strconv.Itoa(http.StatusInternalServerError)
 			b, err := ioutil.ReadAll(r.Body)
@@ -41,10 +40,8 @@ func IndexPost(errLog logger.Logger) http.Handler {
 				w.Write(resp)
 				return
 			}
-			fmt.Printf("req: %#v\n", r)
 
 			if len(b) == 0 {
-				fmt.Println("no body sent")
 				resp = []byte("bad request: missing body")
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
@@ -55,16 +52,14 @@ func IndexPost(errLog logger.Logger) http.Handler {
 			var pre = new(gitev.PullReqEvent)
 			err = json.Unmarshal(b, pre)
 			if err != nil {
-				fmt.Println("unmarshal error", err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 				w.Write(resp)
 				return
 			}
 
-			err = build.Build(pre)
+			err = initializePREvent(pre)
 			if err != nil {
-				fmt.Println("build error", err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 				w.Write(resp)
@@ -79,4 +74,41 @@ func IndexPost(errLog logger.Logger) http.Handler {
 		w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 		w.Write(resp)
 	})
+}
+
+func initializePREvent(pre *gitev.PullReqEvent) error {
+	var name = docker.PRContainerName(pre)
+	fmt.Println("our new docker container name is", name)
+
+	var err error
+	switch pre.Action {
+	case gitev.ACTION_SYNC, gitev.ACTION_EDIT:
+		fmt.Println("SYNC OR EDIT ACTION PERFORMED")
+		runningContainer, err := docker.PRContainer(pre)
+		if err != nil {
+			break
+		}
+		if runningContainer != "" {
+			fmt.Println("running container name is", runningContainer)
+			err = docker.StopContainer(runningContainer)
+			if err != nil {
+				break
+			}
+			fmt.Println("shut down running container")
+		}
+		err = build.Build(pre, name)
+		fmt.Println("running new contianer")
+	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
+		fmt.Println("OPEN OR REOPEN ACTION PERFORMED")
+		err = build.Build(pre, name)
+		fmt.Println("running new contianer")
+	case gitev.ACTION_CLOSE:
+		fmt.Println("CLOSE ACTION PERFORMED")
+		err = docker.StopContainer(name)
+		fmt.Println("shutdown contianer")
+	default:
+		fmt.Println("NO ACTION FOR :", pre.Action)
+	}
+
+	return err
 }

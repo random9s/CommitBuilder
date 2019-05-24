@@ -5,8 +5,7 @@ BIN=main
 BUILD=$(shell pwd)/main
 
 MAINLOC?=cmd/commitbuilder/main.go
-PROJ?=cb
-SHA?=shahash
+CONTAINER?=generic-container
 PORT?=9000
 
 $(BUILD):
@@ -18,8 +17,8 @@ deps:
 	$(GOGET) "github.com/gorilla/mux"
 
 docker:
-	docker build -t ${SHA}-${PROJ}-build -f Dockerfile .
-	docker run -d --restart unless-stopped -p ${PORT}:8080 --name ${PROJ}-${SHA} ${SHA}-${PROJ}-build
+	docker build -t ${CONTAINER} -f Dockerfile .
+	docker run -d --rm -p ${PORT}:8080 --name ${CONTAINER} ${CONTAINER}
 
 clean:
 	rm -rf log; echo > /dev/null

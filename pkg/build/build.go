@@ -14,14 +14,14 @@ import (
 )
 
 const gitPath = "https://github.com/%s"
-const buildPath = "srv/www/%s-build-%s"
+const buildPath = "/srv/www/%s-build-%s"
 
 func buildExists(dir string) bool {
 	_, err := os.Stat(dir)
 	return !os.IsNotExist(err)
 }
 
-func dockerize(dirpath, hash string) error {
+func dockerize(dirpath, containerName string) error {
 	port := network.NextAvailablePort()
 	if port == 0 {
 		return errors.New("no available port to run docker container")
@@ -29,9 +29,8 @@ func dockerize(dirpath, hash string) error {
 
 	cmd := exec.Command(
 		"make",
-		fmt.Sprintf("SHA=%s", hash),
 		fmt.Sprintf("PORT=%d", port),
-		"PROJ=cb",
+		fmt.Sprintf("CONTAINER=%s", containerName),
 		"-C", dirpath,
 		"docker",
 	)
@@ -47,14 +46,11 @@ func dockerize(dirpath, hash string) error {
 	return nil
 }
 
-func Build(pre *gitev.PullReqEvent) error {
+func Build(pre *gitev.PullReqEvent, containerName string) error {
 	var dir = fmt.Sprintf(buildPath, pre.PullReq.Head.Repo.Name, pre.PullReq.Head.Sha)
-
 	if buildExists(dir) {
 		return errors.New("project has already been built")
 	}
-
-	fmt.Println("setting up ", dir)
 	os.MkdirAll(dir, 0777)
 	defer os.RemoveAll(dir)
 
@@ -64,18 +60,15 @@ func Build(pre *gitev.PullReqEvent) error {
 	if err != nil {
 		return err
 	}
-
 	w, err := r.Worktree()
 	if err != nil {
 		return err
 	}
-
-	// ... checking out to commit
 	if err = w.Checkout(&git.CheckoutOptions{
 		Hash: plumbing.NewHash(pre.PullReq.Head.Sha),
 	}); err != nil {
 		return err
 	}
 
-	return dockerize(dir, pre.PullReq.Head.Sha)
+	return dockerize(dir, containerName)
 }
