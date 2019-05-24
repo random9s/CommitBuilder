@@ -35,8 +35,7 @@ func PRContainer(pre *gitev.PullReqEvent) (string, error) {
 
 	var projName = pre.PullReq.Head.Repo.Name
 	var pullReqID = pre.PRNumber
-	var pref = fmt.Sprintf("%s-%s", projName, pullReqID)
-
+	var pref = strings.ToLower(fmt.Sprintf("%s-%s", projName, pullReqID))
 	var container string
 	for _, c := range containers {
 		if strings.HasPrefix(c, pref) {
