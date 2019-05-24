@@ -93,7 +93,8 @@ func main() {
 				var JSON = `[`
 				files, _ := ioutil.ReadDir(prStateDir)
 				for _, file := range files {
-					b, _ := ioutil.ReadFile(file.Name())
+					var fullpath = fmt.Sprintf("%s/%s", prStateDir, file.Name())
+					b, _ := ioutil.ReadFile(fullpath)
 					JSON += string(b) + ","
 				}
 				JSON += `]`

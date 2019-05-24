@@ -18,6 +18,7 @@ ENV PATH="${GOPATH}/bin:${GOROOT}/bin:${PATH}"
 RUN go get "github.com/random9s/cinder/..."
 RUN go get "gopkg.in/src-d/go-git.v4/..."
 RUN go get "github.com/gorilla/mux"
+RUN go get "github.com/gorilla/websocket"
 
 ### Add project source code
 RUN mkdir -p /go/src/github.com/random9s/CommitBuilder/

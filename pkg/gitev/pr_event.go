@@ -71,11 +71,32 @@ type PullReq struct {
 	Head    HeadRef `json:"head"`
 }
 
+type State int
+
+const (
+	STATE_BUILDING State = iota
+	STATE_ACTIVE
+	STATE_REMOVED
+)
+
 //PullReqEvent ...
 type PullReqEvent struct {
 	Action   Action  `json:"action"`
 	PRNumber int     `json:"number"`
 	PullReq  PullReq `json:"pull_request"`
+	State    State   `json:"__local_state"`
+}
+
+func (pre *PullReqEvent) SetActive() {
+	pre.State = STATE_ACTIVE
+}
+
+func (pre *PullReqEvent) SetBuilding() {
+	pre.State = STATE_BUILDING
+}
+
+func (pre *PullReqEvent) SetRemoved() {
+	pre.State = STATE_REMOVED
 }
 
 func (pre *PullReqEvent) String() string {

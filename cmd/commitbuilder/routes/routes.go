@@ -104,6 +104,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				w.Write(resp)
 				return
 			}
+			pre.SetBuilding()
 
 			preBytes, _ := json.Marshal(pre)
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, pre.PullReq.Head.Repo.Name, pre.PRNumber)
@@ -112,7 +113,6 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			if err != nil {
 				fmt.Println("err writing state file", err)
 			}
-			fmt.Println("state file written")
 
 			err = initializePREvent(pre)
 			if err != nil {
