@@ -28,7 +28,7 @@ func IndexGet(errLog logger.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusOK))
 		//loadTemplate(w, "index.html", "assets/html/index.html")
-		w.Write([]byte("hello"))
+		w.Write([]byte("hello, world"))
 	})
 }
 
