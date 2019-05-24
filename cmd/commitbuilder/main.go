@@ -90,14 +90,15 @@ func main() {
 					return
 				}
 
+				var JSON = `[`
 				files, _ := ioutil.ReadDir(prStateDir)
-				var fileNames = "Files contained in dir are: \n"
 				for _, file := range files {
-					fileNames += file.Name() + "\n"
-					fmt.Println(file.Name())
+					b, _ := ioutil.ReadFile(file.Name())
+					JSON += string(b) + ","
 				}
+				JSON += `]`
 
-				infoCh <- []byte(fileNames)
+				infoCh <- []byte(JSON)
 			}
 		}
 	}()
