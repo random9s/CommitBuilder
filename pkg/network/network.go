@@ -10,11 +10,19 @@ var portRangeHigh = 10000
 
 func portIsAvailable(port string) bool {
 	var avail bool
+
 	ln, err := net.Listen("tcp", port)
+	fmt.Println(ln)
+	fmt.Println(err)
+
 	if err == nil {
 		avail = true
 	}
-	ln.Close()
+
+	if ln != nil {
+		ln.Close()
+	}
+
 	return avail
 }
 
