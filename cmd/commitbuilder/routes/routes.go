@@ -105,9 +105,10 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				return
 			}
 
+			preBytes, _ := json.Marshal(pre)
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, pre.PullReq.Head.Repo.Name, pre.PRNumber)
 			fmt.Println("setting up state file: ", stateFile)
-			err = ioutil.WriteFile(stateFile, b, 0777)
+			err = ioutil.WriteFile(stateFile, preBytes, 0777)
 			if err != nil {
 				fmt.Println("err writing state file", err)
 			}
