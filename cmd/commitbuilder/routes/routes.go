@@ -30,6 +30,7 @@ func loadTemplate(w http.ResponseWriter, name string, htmlPaths ...string) {
 
 //IndexWebSocketServer is used to poll for info about new PRs
 func IndexWebSocketServer(errLog logger.Logger, ping chan bool, info chan []byte) http.Handler {
+	//nothing
 	var upgrader = websocket.Upgrader{}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
