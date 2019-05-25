@@ -98,8 +98,7 @@ func main() {
 					b, _ := ioutil.ReadFile(fullpath)
 					JSON += string(b) + ","
 				}
-
-				strings.TrimRight(JSON, ",")
+				JSON = strings.TrimRight(JSON, ",")
 				JSON += `]`
 
 				infoCh <- []byte(JSON)
