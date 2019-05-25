@@ -18,7 +18,6 @@
 	<nav class="nav">
 		<img src="assets/images/fyusion-logo.svg" alt="Company Logo">
 	</nav>
-
 	<main class="container">
 		<table class="status-table">
 			<thead>
@@ -30,14 +29,7 @@
 					<th><span>Status</span></th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr>
-					<td><img src="https://avatars0.githubusercontent.com/u/10393533?s=400&u=0bb4dd1f84d747892ce9f0f21b0751ca145581fa&v=4" width="50" height="50" alt="username"> <a style="position:relative; margin: 20%" href="https://github.com/random9s">random9s</a></td>
-					<td>CommitBuilder</td>
-					<td>New Branch</td>
-					<td><a href="http://something.com">#142</a></td>
-					<td class="status status--active">Active</td>
-				</tr>
+			<tbody id="open-prs">
 			</tbody>
 		</table>
 	</main>
@@ -52,13 +44,8 @@
 	</footer>
 	<script type="text/javascript">
 		window.addEventListener("load", function(evt) {
-			let print = function(message) {
-				var d = document.createElement("div");
-				d.innerHTML = message;
-				document.body.appendChild(d);
-			};
-
 			let ws = new WebSocket("ws://localhost:8080/prinfo");
+			let openprs = document.getElementById('open-prs');
 			function timeout(ms) {
 				return new Promise(resolve => setTimeout(resolve, ms));
 			}
@@ -84,11 +71,70 @@
 				ws = null;
 			}
 			ws.onmessage = function(evt) {
-				print("RESPONSE: " + evt.data);
+				console.log (evt.data);
+				var data = JSON.parse(evt.data);
+				if (data) {
+					while (openprs.firstChild ) openprs.removeChild(openprs.firstChild);
+					let els = data.map(item => {
+						let userImg = document.createElement('img');
+						userImg.src = item.pull_request.user.avatar_url || item.pull_request.user.gravatar_id || 'https://avatars0.githubusercontent.com/u/5533643?s=200&v=4'; 
+						userImg.width = 50;
+						userImg.height = 50;
+						userImg.alt = item.pull_request.user.login || 'nobody';
+						let userProfile = document.createElement('a');
+						userProfile.href = item.pull_request.user.html_url || 'https://github.com/Fyusion'; 
+						userProfile.innerHTML = item.pull_request.user.login || 'nobody';
+						let userTD = document.createElement('td');
+						userTD.appendChild(userImg);
+						userTD.appendChild(userProfile);
+
+						let repoTD = document.createElement('td');
+						repoTD.innerHTML = item.pull_request.head.repo.name || 'unnamed';
+
+						let branchTD = document.createElement('td');
+						branchTD.innerHTML = item.pull_request.title || 'unnamed';;
+
+						let serverLoc = document.createElement('a');
+						serverLoc.href = item.server_loc || 'http://ec2-34-215-250-175.us-west-2.compute.amazonaws.com:8080/bad-news-bears';
+						serverLoc.innerHTML = '#'+item.number;
+
+						let serverTD = document.createElement('td');
+						serverTD.appendChild(serverLoc);
+
+						let statusclass = '';	
+						let status = '';
+						switch (item.__local_state) {
+							case "active":
+								statusclass = 'status--active';
+								status = 'Active';
+								break;
+							case "building":
+								statusclass = 'status--impaired';
+								status = 'Building';
+								break;
+							case "failed":
+								statusclass = 'status--outage';
+								status = 'Failed';
+								break;
+							default:
+						}
+						let statusTD = document.createElement('td');
+						statusTD.classList.add('status', statusclass);
+						statusTD.innerHTML = status
+
+						let tr = document.createElement('tr');
+						tr.appendChild(userTD);
+						tr.appendChild(repoTD);
+						tr.appendChild(branchTD);
+						tr.appendChild(serverTD);
+						tr.appendChild(statusTD);
+
+						return tr;
+					});
+					for (let i = 0; i < els.length; i++) openprs.appendChild(els[i]);
+				}
 			}
-			ws.onerror = function(evt) {
-				print("ERROR: " + evt.data);
-			}
+			ws.onerror = function(evt) { console.log (evt.data);}
 		});
 	</script>
 </body>
