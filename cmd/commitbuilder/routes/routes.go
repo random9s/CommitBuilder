@@ -108,7 +108,6 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
-
 			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
 				fmt.Print("cannot open file", err)
@@ -116,8 +115,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 
 			pre.SetBuilding()
 			preBytes, _ := json.Marshal(pre)
-			_, err = fp.Write(preBytes)
-			if err != nil {
+			if _, err = fp.Write(preBytes); err != nil {
 				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()
@@ -125,12 +123,9 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			loc, err := initializePREvent(pre)
 			if err != nil {
 				fp.Truncate(0)
-				fp.Sync()
-
 				pre.SetFailed()
 				preBytes, _ = json.Marshal(pre)
-				_, err = fp.Write(preBytes)
-				if err != nil {
+				if _, err = fp.Write(preBytes); err != nil {
 					fmt.Println("err writing state file", err)
 				}
 				fp.Sync()
@@ -143,13 +138,10 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 
 			fp.Truncate(0)
-			fp.Sync()
-
 			pre.SetActive()
 			pre.SetBuildLoc(loc)
 			preBytes, _ = json.Marshal(pre)
-			_, err = fp.Write(preBytes)
-			if err != nil {
+			if _, err = fp.Write(preBytes); err != nil {
 				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()

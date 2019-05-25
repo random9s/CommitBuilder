@@ -91,16 +91,14 @@ func main() {
 					return
 				}
 
-				var JSON = "["
+				var JSON string
 				files, _ := ioutil.ReadDir(prStateDir)
 				for _, file := range files {
-					var fullpath = fmt.Sprintf("%s/%s", prStateDir, file.Name())
-					b, _ := ioutil.ReadFile(fullpath)
+					b, _ := ioutil.ReadFile(fmt.Sprintf("%s/%s", prStateDir, file.Name()))
 					JSON += fmt.Sprintf("%s,", string(b))
 				}
 				JSON = strings.TrimRight(JSON, ",")
-				JSON += "]"
-				infoCh <- []byte(JSON)
+				infoCh <- []byte(fmt.Sprintf(`[%s]`, JSON))
 			}
 		}
 	}()
