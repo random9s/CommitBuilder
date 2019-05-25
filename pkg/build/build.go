@@ -31,7 +31,7 @@ func dockerize(dirpath, containerName string) (string, error) {
 	if port == 0 {
 		return "", errors.New("no available port to run docker container")
 	}
-	var loc = fmt.Sprintf("http://ec2-34-215-250-175.us-west-2.compute.amazonaws.com:8080/%d", port)
+	var loc = fmt.Sprintf("http://ec2-34-215-250-175.us-west-2.compute.amazonaws.com:%d", port)
 
 	cmd := exec.Command(
 		"make",
