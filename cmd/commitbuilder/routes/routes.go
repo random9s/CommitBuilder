@@ -119,7 +119,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 			fp.Sync()
 
-			loc, err := initializePREvent(pre)
+			loc, err := initializePREvent(pre, stateFile)
 			if err != nil {
 				fp.Truncate(0)
 				fp.Seek(0, 0)
