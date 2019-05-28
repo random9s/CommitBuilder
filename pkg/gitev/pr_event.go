@@ -24,13 +24,15 @@ const (
 
 //GitUser ...
 type GitUser struct {
-	Login     string `json:"login"`
-	ID        int    `json:"id"`
-	NodeID    string `json:"node_id"`
-	AvatarURL string `json:"avatar_url"`
-	URL       string `json:"url"`
-	Type      string `json:"type"`
-	Admin     bool   `json:"site_admin"`
+	Login       string `json:"login"`
+	ID          int    `json:"id"`
+	NodeID      string `json:"node_id"`
+	AvatarURL   string `json:"avatar_url"`
+	GravatarURL string `json:"gravatar_id"`
+	HTMLUrl     string `json:"html_url"`
+	URL         string `json:"url"`
+	Type        string `json:"type"`
+	Admin       bool   `json:"site_admin"`
 }
 
 //RepoInfo ...
@@ -49,6 +51,7 @@ type HeadRef struct {
 	Ref      string   `json:"ref"`
 	Sha      string   `json:"sha"`
 	User     GitUser  `json:"user"`
+	HTMLURL  string   `json:"html_url"`
 	GitURL   string   `json:"git_url"`
 	SSHURL   string   `json:"ssh_url"`
 	CloneURL string   `json:"clone_url"`
@@ -69,11 +72,37 @@ type PullReq struct {
 	Head    HeadRef `json:"head"`
 }
 
+type State string
+
+const (
+	STATE_BUILDING State = "building"
+	STATE_ACTIVE   State = "active"
+	STATE_FAILED   State = "failed"
+)
+
 //PullReqEvent ...
 type PullReqEvent struct {
 	Action   Action  `json:"action"`
 	PRNumber int     `json:"number"`
 	PullReq  PullReq `json:"pull_request"`
+	State    State   `json:"__local_state"`
+	Loc      string  `json:"server_loc"`
+}
+
+func (pre *PullReqEvent) SetActive() {
+	pre.State = STATE_ACTIVE
+}
+
+func (pre *PullReqEvent) SetBuilding() {
+	pre.State = STATE_BUILDING
+}
+
+func (pre *PullReqEvent) SetFailed() {
+	pre.State = STATE_FAILED
+}
+
+func (pre *PullReqEvent) SetBuildLoc(loc string) {
+	pre.Loc = loc
 }
 
 func (pre *PullReqEvent) String() string {
