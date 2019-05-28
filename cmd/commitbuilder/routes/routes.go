@@ -137,6 +137,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 
 			fp.Truncate(0)
+			fp.Seek(0, 0)
 			pre.SetActive()
 			pre.SetBuildLoc(loc)
 			preBytes, _ = json.Marshal(pre)
