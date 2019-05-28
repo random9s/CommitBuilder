@@ -122,6 +122,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			loc, err := initializePREvent(pre)
 			if err != nil {
 				fp.Truncate(0)
+				fp.Seek(0, 0)
 				pre.SetFailed()
 				preBytes, _ = json.Marshal(pre)
 				if _, err = fp.Write(preBytes); err != nil {
@@ -157,7 +158,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	})
 }
 
-func initializePREvent(pre *gitev.PullReqEvent) (string, error) {
+func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error) {
 	var name = docker.PRContainerName(pre)
 	var serverLoc string
 	var err error
@@ -177,6 +178,7 @@ func initializePREvent(pre *gitev.PullReqEvent) (string, error) {
 		serverLoc, err = build.Build(pre, name)
 	case gitev.ACTION_CLOSE:
 		fmt.Println("CLOSE ACTION PERFORMED")
+		os.Remove(stateFile)
 		err = docker.StopContainer(name)
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
