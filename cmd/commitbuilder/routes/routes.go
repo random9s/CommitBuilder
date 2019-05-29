@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -75,6 +76,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
+		fmt.Println("POST START")
 
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
 			resp = []byte("failure\n")
@@ -90,6 +92,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 
 			if len(b) == 0 {
+				errLog.Error(errors.New("bad request: missing body"))
 				resp = []byte("bad request: missing body")
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
@@ -100,21 +103,25 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			var pre = new(gitev.PullReqEvent)
 			err = json.Unmarshal(b, pre)
 			if err != nil {
+				errLog.Error(err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 				w.Write(resp)
 				return
 			}
+			fmt.Printf("\n\n%#v\n\n", pre)
 
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
 			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 				fmt.Print("cannot open file", err)
 			}
 
 			pre.SetBuilding()
 			preBytes, _ := json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()
@@ -126,6 +133,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				pre.SetFailed()
 				preBytes, _ = json.Marshal(pre)
 				if _, err = fp.Write(preBytes); err != nil {
+					errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 					fmt.Println("err writing state file", err)
 				}
 				fp.Sync()
@@ -143,6 +151,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			pre.SetBuildLoc(loc)
 			preBytes, _ = json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()
@@ -173,16 +182,20 @@ func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error
 			fmt.Println("shut down running container")
 		}
 		serverLoc, err = build.Build(pre, name)
+		fmt.Println("err set here", err)
 	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
 		fmt.Println("OPEN OR REOPEN ACTION PERFORMED")
 		serverLoc, err = build.Build(pre, name)
+		fmt.Println("err set here", err)
 	case gitev.ACTION_CLOSE:
 		fmt.Println("CLOSE ACTION PERFORMED")
 		os.Remove(stateFile)
 		err = docker.StopContainer(name)
+		fmt.Println("err set here", err)
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
 
+	fmt.Println("returning err", err)
 	return serverLoc, err
 }
