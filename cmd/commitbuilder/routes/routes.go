@@ -115,33 +115,30 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
 				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-				fmt.Print("cannot open file", err)
 			}
 
 			pre.SetBuilding()
 			preBytes, _ := json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
 				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()
 
 			loc, err := initializePREvent(pre, stateFile)
 			if err != nil {
+				errLog.Error(fmt.Errorf("err running action %s: %s", pre.Action, err.Error()))
+				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
+				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
+				w.Write(resp)
+
 				fp.Truncate(0)
 				fp.Seek(0, 0)
 				pre.SetFailed()
 				preBytes, _ = json.Marshal(pre)
 				if _, err = fp.Write(preBytes); err != nil {
 					errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-					fmt.Println("err writing state file", err)
 				}
 				fp.Sync()
-
-				fmt.Println("Initialization error:", err)
-				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
-				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
-				w.Write(resp)
 				return
 			}
 
@@ -152,11 +149,9 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			preBytes, _ = json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
 				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-				fmt.Println("err writing state file", err)
 			}
 			fp.Sync()
 
-			fmt.Println("successfully completed action")
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
 		}
@@ -182,20 +177,15 @@ func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error
 			fmt.Println("shut down running container")
 		}
 		serverLoc, err = build.Build(pre, name)
-		fmt.Println("err set here", err)
 	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
 		fmt.Println("OPEN OR REOPEN ACTION PERFORMED")
 		serverLoc, err = build.Build(pre, name)
-		fmt.Println("err set here", err)
 	case gitev.ACTION_CLOSE:
 		fmt.Println("CLOSE ACTION PERFORMED")
 		os.Remove(stateFile)
 		err = docker.StopContainer(name)
-		fmt.Println("err set here", err)
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
-
-	fmt.Println("returning err", err)
 	return serverLoc, err
 }
