@@ -76,10 +76,10 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
-
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
 			resp = []byte("failure\n")
 			status = strconv.Itoa(http.StatusInternalServerError)
+
 			b, err := ioutil.ReadAll(r.Body)
 			r.Body.Close()
 			if err != nil {
@@ -109,46 +109,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				return
 			}
 
-			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
-			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
-			if err != nil {
-				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-			}
-
-			pre.SetBuilding()
-			preBytes, _ := json.Marshal(pre)
-			if _, err = fp.Write(preBytes); err != nil {
-				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-			}
-			fp.Sync()
-
-			loc, err := initializePREvent(pre, stateFile)
-			if err != nil {
-				errLog.Error(fmt.Errorf("err running action %s: %s", pre.Action, err.Error()))
-				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
-				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
-				w.Write(resp)
-
-				fp.Truncate(0)
-				fp.Seek(0, 0)
-				pre.SetFailed()
-				preBytes, _ = json.Marshal(pre)
-				if _, err = fp.Write(preBytes); err != nil {
-					errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-				}
-				fp.Sync()
-				return
-			}
-
-			fp.Truncate(0)
-			fp.Seek(0, 0)
-			pre.SetActive()
-			pre.SetBuildLoc(loc)
-			preBytes, _ = json.Marshal(pre)
-			if _, err = fp.Write(preBytes); err != nil {
-				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
-			}
-			fp.Sync()
+			go start(pre, prStateDir, errLog)
 
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
@@ -160,7 +121,44 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	})
 }
 
-func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error) {
+func start(pre *gitev.PullReqEvent, dir string, errLog logger.Logger) {
+	var stateFile = fmt.Sprintf("%s/%s-%d", dir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
+	fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
+		return
+	}
+	defer fp.Close()
+
+	pre.SetBuilding()
+	writeToDisk(pre, fp, errLog)
+
+	loc, err := initializeEvent(pre, stateFile)
+	if err != nil {
+		errLog.Error(fmt.Errorf("err running action %s: %s", pre.Action, err.Error()))
+		pre.SetFailed()
+		writeToDisk(pre, fp, errLog)
+		return
+	}
+
+	pre.SetActive()
+	pre.SetBuildLoc(loc)
+	writeToDisk(pre, fp, errLog)
+}
+
+func writeToDisk(pre *gitev.PullReqEvent, fp *os.File, errLog logger.Logger) {
+	fp.Truncate(0)
+	fp.Seek(0, 0)
+
+	b, _ := json.Marshal(pre)
+	if _, err := fp.Write(b); err != nil {
+		errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
+	}
+
+	fp.Sync()
+}
+
+func initializeEvent(pre *gitev.PullReqEvent, stateFile string) (string, error) {
 	var name = docker.PRContainerName(pre)
 	var serverLoc string
 	var err error
@@ -184,5 +182,6 @@ func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
+
 	return serverLoc, err
 }
