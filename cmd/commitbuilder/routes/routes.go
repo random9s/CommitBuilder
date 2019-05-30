@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -75,6 +76,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
+		fmt.Println("POST START")
 
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
 			resp = []byte("failure\n")
@@ -90,6 +92,7 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			}
 
 			if len(b) == 0 {
+				errLog.Error(errors.New("bad request: missing body"))
 				resp = []byte("bad request: missing body")
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
@@ -100,40 +103,42 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			var pre = new(gitev.PullReqEvent)
 			err = json.Unmarshal(b, pre)
 			if err != nil {
+				errLog.Error(err)
 				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
 				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
 				w.Write(resp)
 				return
 			}
+			fmt.Printf("\n\n%#v\n\n", pre)
 
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
 			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
-				fmt.Print("cannot open file", err)
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 			}
 
 			pre.SetBuilding()
 			preBytes, _ := json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
-				fmt.Println("err writing state file", err)
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 			}
 			fp.Sync()
 
 			loc, err := initializePREvent(pre, stateFile)
 			if err != nil {
+				errLog.Error(fmt.Errorf("err running action %s: %s", pre.Action, err.Error()))
+				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
+				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
+				w.Write(resp)
+
 				fp.Truncate(0)
 				fp.Seek(0, 0)
 				pre.SetFailed()
 				preBytes, _ = json.Marshal(pre)
 				if _, err = fp.Write(preBytes); err != nil {
-					fmt.Println("err writing state file", err)
+					errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 				}
 				fp.Sync()
-
-				fmt.Println("Initialization error:", err)
-				w.Header().Set("X-Server-Status", strconv.Itoa(http.StatusBadRequest))
-				w.Header().Set("Content-Length", strconv.Itoa(len(resp)))
-				w.Write(resp)
 				return
 			}
 
@@ -143,11 +148,10 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 			pre.SetBuildLoc(loc)
 			preBytes, _ = json.Marshal(pre)
 			if _, err = fp.Write(preBytes); err != nil {
-				fmt.Println("err writing state file", err)
+				errLog.Error(fmt.Errorf("err writing state file: %s", err.Error()))
 			}
 			fp.Sync()
 
-			fmt.Println("successfully completed action")
 			resp = []byte("success\n")
 			status = strconv.Itoa(http.StatusOK)
 		}
@@ -183,6 +187,5 @@ func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error
 	default:
 		fmt.Println("NO ACTION FOR :", pre.Action)
 	}
-
 	return serverLoc, err
 }

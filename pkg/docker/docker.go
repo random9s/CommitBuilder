@@ -20,10 +20,24 @@ func ListContainers() ([]string, error) {
 }
 
 func PRContainerName(pre *gitev.PullReqEvent) string {
-	var pullReqID = pre.PRNumber
 	var projName = pre.PullReq.Head.Repo.Name
-	var commitSha = pre.PullReq.Head.Sha[10:]
-	return strings.ToLower(fmt.Sprintf("%s-%d-%s", projName, pullReqID, commitSha))
+	if len(projName) > 10 {
+		projName = projName[:10]
+	}
+	var commitSha = pre.PullReq.Head.Sha
+	if len(commitSha) > 10 {
+		commitSha = commitSha[:10]
+	}
+
+	return strings.ToLower(fmt.Sprintf("%s-%d-%s", projName, pre.PRNumber, commitSha))
+}
+
+func PRContainerPrefix(pre *gitev.PullReqEvent) string {
+	var projName = pre.PullReq.Head.Repo.Name
+	if len(projName) > 10 {
+		projName = projName[:10]
+	}
+	return strings.ToLower(fmt.Sprintf("%s-%d", projName, pre.PRNumber))
 }
 
 //PRContainer ...
@@ -34,17 +48,12 @@ func PRContainer(pre *gitev.PullReqEvent) (string, error) {
 		return "", err
 	}
 
-	var projName = pre.PullReq.Head.Repo.Name
-	var pullReqID = pre.PRNumber
-
-	var pref = strings.ToLower(fmt.Sprintf("%s-%d", projName, pullReqID))
+	var container string
+	var pref = PRContainerPrefix(pre)
 	fmt.Println("PREFIX: ", pref)
 
-	var container string
 	for _, c := range containers {
-		fmt.Println("CONTAINER", c)
 		if strings.HasPrefix(c, pref) {
-			fmt.Println("found prefix")
 			container = c
 			break
 		}

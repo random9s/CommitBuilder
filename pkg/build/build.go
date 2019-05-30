@@ -11,9 +11,11 @@ import (
 	"github.com/random9s/CommitBuilder/pkg/network"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
-const gitPath = "https://github.com/%s"
+//const gitPath = "https://github.com/%s"
+const gitPath = "git@github.com:%s.git"
 const buildPath = "/srv/www/%s-build-%s"
 
 func buildExists(dir string) bool {
@@ -45,6 +47,7 @@ func dockerize(dirpath, containerName string) (string, error) {
 	b, _ := ioutil.ReadAll(stderr)
 	cmd.Wait()
 	if len(b) > 0 {
+		fmt.Println("ugh", string(b))
 		return "", errors.New("could not run makefile: " + string(b))
 	}
 
@@ -59,8 +62,19 @@ func Build(pre *gitev.PullReqEvent, containerName string) (string, error) {
 	os.MkdirAll(dir, 0777)
 	defer os.RemoveAll(dir)
 
+	sshBytes, err := ioutil.ReadFile("/root/.ssh/id_rsa")
+	if err != nil {
+		return "", err
+	}
+
+	kys, err := ssh.NewPublicKeys("git", sshBytes, "")
+	if err != nil {
+		return "", err
+	}
+
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
-		URL: fmt.Sprintf(gitPath, pre.PullReq.Head.Repo.FullName),
+		URL:  fmt.Sprintf(gitPath, pre.PullReq.Head.Repo.FullName),
+		Auth: kys,
 	})
 	if err != nil {
 		return "", err
