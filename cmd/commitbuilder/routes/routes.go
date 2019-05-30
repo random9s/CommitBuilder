@@ -76,7 +76,6 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var resp = []byte("forbidden\n")
 		var status = strconv.Itoa(http.StatusForbidden)
-		fmt.Println("POST START")
 
 		if r.URL.Query().Get("k") == "8cAzktzWjYSHNFpCYN3dP23UxkHJ7C8P" {
 			resp = []byte("failure\n")
@@ -109,7 +108,6 @@ func IndexPost(errLog logger.Logger, prStateDir string) http.Handler {
 				w.Write(resp)
 				return
 			}
-			fmt.Printf("\n\n%#v\n\n", pre)
 
 			var stateFile = fmt.Sprintf("%s/%s-%d", prStateDir, strings.ToLower(pre.PullReq.Head.Repo.Name), pre.PRNumber)
 			fp, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE, 0755)
@@ -174,7 +172,6 @@ func initializePREvent(pre *gitev.PullReqEvent, stateFile string) (string, error
 			if err = docker.StopContainer(runningContainer); err != nil {
 				break
 			}
-			fmt.Println("shut down running container")
 		}
 		serverLoc, err = build.Build(pre, name)
 	case gitev.ACTION_OPEN, gitev.ACTION_REOPEN:
